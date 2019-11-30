@@ -2,6 +2,8 @@ int Dust_Input = A0;
 int Dust_LED = 2;
 
 float Dust_value = 0.00;
+float Dust_voltage = 0.00;
+float Dust_density = 0.00;
 
 void setup() {
   Serial.begin(115200);
@@ -17,6 +19,10 @@ void loop() {
   digitalWrite(Dust_LED, HIGH);
   delayMicroseconds(9860);
 
-  Serial.println(Dust_value);
+  Dust_voltage = Dust_value * 5.0 / 1024.0;
+  Dust_density = (Dust_voltage - 0.3) / 0.005;
+
+  Serial.print("Dust_Density : ");
+  Serial.println(Dust_density);
   delay(1000);
 }
