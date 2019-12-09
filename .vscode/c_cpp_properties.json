@@ -4,15 +4,28 @@
             "name": "Linux",
             "includePath": [
                 "/home/kmc/.local/share/umake/ide/arduino/tools/**",
-                "/home/kmc/.local/share/umake/ide/arduino/hardware/arduino/avr/**"
+                "/home/kmc/.local/share/umake/ide/arduino/hardware/arduino/avr/**",
+                "/Applications/Arduino.app/Contents/Java/hardware/arduino/avr/**",
+                "/Applications/Arduino.app/Contents/Java/tools/**"
             ],
             "forcedInclude": [
-                "/home/kmc/.local/share/umake/ide/arduino/hardware/arduino/avr/cores/arduino/Arduino.h"
+                "/home/kmc/.local/share/umake/ide/arduino/hardware/arduino/avr/cores/arduino/Arduino.h",
+                "/Applications/Arduino.app/Contents/Java/hardware/arduino/avr/cores/arduino/Arduino.h"
             ],
             "intelliSenseMode": "gcc-x64",
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
             "cppStandard": "c++17"
+        },
+        {
+            "name": "Mac",
+            "includePath": [
+                "/Applications/Arduino.app/Contents/Java/tools/**",
+                "/Applications/Arduino.app/Contents/Java/hardware/arduino/avr/**"
+            ],
+            "forcedInclude": [
+                "/Applications/Arduino.app/Contents/Java/hardware/arduino/avr/cores/arduino/Arduino.h"
+            ]
         }
     ],
     "version": 4
