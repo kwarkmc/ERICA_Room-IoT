@@ -25,6 +25,10 @@
 #include <SPI.h>
 #include <Ethernet.h>
 
+String temp; // 온도
+String wfEn; // 날씨정보_영문
+String reh;  // 습도
+
 // assign a MAC address for the ethernet controller.
 // fill in your address here:
 byte mac[] = {
@@ -73,7 +77,7 @@ void setup() {
       Serial.println("Ethernet cable is not connected.");
     }
     // try to congifure using IP address instead of DHCP:
-    Ethernet.begin(mac, ip, myDns);
+    Ethernet.begin(mac);
     Serial.print("My IP address: ");
     Serial.println(Ethernet.localIP());
   } else {
