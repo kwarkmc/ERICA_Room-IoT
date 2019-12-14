@@ -24,21 +24,32 @@
 /* Header 선언 */
 #include <SPI.h>
 #include <Ethernet.h>
+#include <SoftwareSerial.h>
+#include <DS1302.h>
+#include "DHT.h"
+
+SoftwareSerial bluetooth(2,3);
+// HC-06 BT 모듈 설정
 
 #define SCK_PIN 4
 #define IO_PIN 5
 #define RST_PIN 6
 // Real-Time Clock 모듈 핀
 
+DS1302 rtc(RST_PIN, IO_PIN, SCK_PIN);
+// DS-1302 Read-Time 모듈 설정
+
 #define DHT_PIN 7
 #define DHTTYPE DHT11
 // DHT11 온습도 센서 핀
+
+DHT dht(DHT_PIN, DHTTYPE);
 
 #define DUST_INPUT_PIN A0
 #define DUST_LED_PIN 9
 // Dust_Sensor 미세먼지 측정 센서 핀
 
-#define IR_PIN 8
+#define IR_PIN 10
 
 /* Global Variable 선언 */
 
@@ -57,6 +68,11 @@ float Dust_voltage = 0.00;
 float Dust_density = 0.00;
 
 /* IR 센서 부분 Global Variable */
+
+int DHT_Humid;
+int DHT_Temp;
+
+/* DHT11 온습도 센서 부분 Global Variable */
 
 int pirState = LOW; // 센서의 초기 상태는 움직임이 없음을 가정
 int val = 0; // 센서 신호의 판별을 위한 변수이다.
@@ -81,12 +97,20 @@ void setup() {
     pinMode(Relay_Air_Purifier, OUTPUT);
     pinMode(Relay_Room_Light, OUTPUT);
     pinMode(Relay_Humidifier, OUTPUT);
+    pinMode(DUST_INPUT_PIN, INPUT);
+    pinMode(DUST_LED_PIN, OUTPUT);
+    pinMode(DHT_PIN, INPUT);
 
-    
+    rtc.halt(false);
+    rtc.writeProtect(false);
+
     Serial.begin(9600);
     while(!Serial) {
         //Serial 포트가 연결될 때 까지 대기
     }
+    Serial.println("Paired!");
+    bluetooth.begin(9600);
+
 
     Serial.println("Initialize Ethernet with DHCP");
     if(Ethernet.begin(mac) == 0) {
@@ -115,59 +139,93 @@ void loop() {
     int i = 0;
     String tmp_str;
 
+    if(Serial.available()) {
+        bluetooth.write(Serial.read()); // BT Master 쪽 수신 코드. if 문 안에 있는 코드 수정 예정!
+    }
+
+    DHT_Humid = dht.readHumidity();
+    DHT_Temp = dht.readTemperature();
+    //DHT11
+
+    digitalWrite(DUST_LED_PIN, LOW);
+    delayMicroseconds(280);
+    Dust_value = analogRead(DUST_INPUT_PIN);
+    delayMicroseconds(40);
+    digitalWrite(DUST_LED_PIN, HIGH);
+    delayMicroseconds(9860);
+
+    Dust_voltage = Dust_value * 5.0 / 1024.0;
+    Dust_density = (Dust_voltage - 0.3) / 0.005;
+
+    val = digitalWrite(DHT_PIN);
+    //Dust_Sensor
+
+    if(val == HIGH) {
+        if(pirState == LOW) {
+            pirState = HIGH;
+        }
+    }
+    else {
+        if(pirState == HIGH) {
+            pirState = LOW;
+        }
+    }
+    //IR_Sensor
+
     if(millis() - lastConnectionTime > postingInterval) {
         httpRequest();
     }
 
     void httpRequest() {
-  // close any connection before send a new request.
-  // This will free the socket on the WiFi shield
-  client.stop();
+        // close any connection before send a new request.
+        // This will free the socket on the WiFi shield
+        client.stop();
 
-  // if there's a successful connection:
-  if (client.connect(server, 80)) {
-    Serial.println("connecting...");
-    // send the HTTP GET request:
-    client.println("GET /wid/queryDFSRSS.jsp?zone=4127152500 HTTP/1.1");
-    client.println("Host: www.kma.go.kr");
-    client.println("Connection: close");
-    client.println();
+          // if there's a successful connection:
+        if (client.connect(server, 80)) {
+         Serial.println("connecting...");
+            // send the HTTP GET request:
+            client.println("GET /wid/queryDFSRSS.jsp?zone=4127152500 HTTP/1.1");
+            client.println("Host: www.kma.go.kr");
+            client.println("Connection: close");
+            client.println();
 
-    // note the time that the connection was made:
-    lastConnectionTime = millis();
-  } else {
-    // if you couldn't make a connection:
-    Serial.println("connection failed");
-  }
+            // note the time that the connection was made:
+          lastConnectionTime = millis();
+        } else {
+         // if you couldn't make a connection:
+         Serial.println("connection failed");
+         }
 
-  while(client.available()) {
-      String line = client.readStringUntil('\n');
+        while(client.available()) {
+             String line = client.readStringUntil('\n');
 
-      i = line.indexOf("</temp>");
+              i = line.indexOf("</temp>");
 
-      if(i>0) {
-          tmp_str = "<temp>";
-          temp = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
-          Serial.println(temp);
-      }
+              if(i>0) {
+                tmp_str = "<temp>";
+                temp = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
+                Serial.println(temp);
+           }
 
-      i = line.indexOf("</wfEn");
+              i = line.indexOf("</wfEn");
 
-      if(i>0) {
-          tmp_str = "<wfEn">;
-          wfEn = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
-          Serial.println(wfEn);
-      }
+           if(i>0) {
+                 tmp_str = "<wfEn">;
+                 wfEn = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
+                 Serial.println(wfEn);
+              }
 
-      i = line.indexOf("</reh>");
+           i = line.indexOf("</reh>");
 
-      if(i>0) {
-          tmp_str = "<reh>";
-          reh = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
-          Serial.println(reh);
-          break;
-      }
-  }
+             if(i>0) {
+                 tmp_str = "<reh>";
+                  reh = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
+               Serial.println(reh);
+                  break;
+            }
+         }
+    }
 
     if(Mode == 0) {
       Serial.println("Current Mode!");
