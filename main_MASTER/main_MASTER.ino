@@ -25,18 +25,41 @@
 #include <SPI.h>
 #include <Ethernet.h>
 
+#define SCK_PIN 4
+#define IO_PIN 5
+#define RST_PIN 6
+// Real-Time Clock 모듈 핀
+
+#define DHT_PIN 7
+#define DHTTYPE DHT11
+// DHT11 온습도 센서 핀
+
+#define DUST_INPUT_PIN A0
+#define DUST_LED_PIN 9
+// Dust_Sensor 미세먼지 측정 센서 핀
+
+#define IR_PIN 8
+
 /* Global Variable 선언 */
 
 int Mode = 0; // 0->Current Mode|생활 모드, 1->Sleeping Mode|외출, 취침 모드
-int Relay_Air_Purifier = 3; // Air_Purifier Relay -> D3
-int Relay_Room_Light = 4; // Room_Light Relay -> D4
-int Relay_Humidifier = 5; // Relay_Humidifier -> D5
 
 //Weather_Parsing 부분 Global Variable
 
 String temp; // 온도 Global Variable
 String wfEn; // 영문 날씨 Global Variable
 String reh; // 습도 Global Variable
+
+/* Dust_Sensing 부분 Global Variable */
+
+float Dust_value = 0.00;
+float Dust_voltage = 0.00;
+float Dust_density = 0.00;
+
+/* IR 센서 부분 Global Variable */
+
+int pirState = LOW; // 센서의 초기 상태는 움직임이 없음을 가정
+int val = 0; // 센서 신호의 판별을 위한 변수이다.
 
 byte mac[] = {
     0xDE, 0xAD, 0xBE, 0xFE, 0xED
