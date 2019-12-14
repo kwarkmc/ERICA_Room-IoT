@@ -90,14 +90,70 @@ void setup() {
 
 void loop() {
     int i = 0;
+    String tmp_str;
+
+    if(millis() - lastConnectionTime > postingInterval) {
+        httpRequest();
+    }
+
+    void httpRequest() {
+  // close any connection before send a new request.
+  // This will free the socket on the WiFi shield
+  client.stop();
+
+  // if there's a successful connection:
+  if (client.connect(server, 80)) {
+    Serial.println("connecting...");
+    // send the HTTP GET request:
+    client.println("GET /wid/queryDFSRSS.jsp?zone=4127152500 HTTP/1.1");
+    client.println("Host: www.kma.go.kr");
+    client.println("Connection: close");
+    client.println();
+
+    // note the time that the connection was made:
+    lastConnectionTime = millis();
+  } else {
+    // if you couldn't make a connection:
+    Serial.println("connection failed");
+  }
+
+  while(client.available()) {
+      String line = client.readStringUntil('\n');
+
+      i = line.indexOf("</temp>");
+
+      if(i>0) {
+          tmp_str = "<temp>";
+          temp = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
+          Serial.println(temp);
+      }
+
+      i = line.indexOf("</wfEn");
+
+      if(i>0) {
+          tmp_str = "<wfEn">;
+          wfEn = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
+          Serial.println(wfEn);
+      }
+
+      i = line.indexOf("</reh>");
+
+      if(i>0) {
+          tmp_str = "<reh>";
+          reh = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
+          Serial.println(reh);
+          break;
+      }
+  }
+
     if(Mode == 0) {
       Serial.println("Current Mode!");
       digitalWrite(Relay_Air_Purifier, HIGH);
       digitalWrite(Relay_Room_Light, HIGH);
       digitalWrite(Relay_Humidifier, HIGH);
-    }
+    } 
     else if (Mode == 1) {
-      Serial.println("Sleepint Mode!");
+      Serial.println("Sleeping Mode!");
       digitalWrite(Relay_Air_Purifier, LOW);
       digitalWrite(Relay_Room_Light, LOW);
       digitalWrite(Relay_Humidifier, LOW);
