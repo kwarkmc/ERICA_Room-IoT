@@ -88,7 +88,21 @@ char server[] = "www.kma.go.kr";
 unsigned long lastConnectionTime = 0;
 const unsigned long postingInterval = 10*1000; // 데이터를 받아오는 주기
 
-
+void Display() {
+    Serial.println("********************************")
+    Serial.print("Internet_temp : ");
+    Serial.println(temp);
+    Serial.print("Internet_weather : ");
+    Serial.println(wfEn);
+    Serial.print("Internet_humidity : ");
+    Serial.println(reh);
+    Serial.print("Dust Density : ");
+    Serial.println(Dust_density);
+    Serial.print("DHT_Humidity : ");
+    Serial.println(DHT_Humid);
+    Serial.print("DHT_Temperature : ");
+    Serial.println(DHT_Temp);
+}
 
 void setup() {
 
@@ -205,7 +219,7 @@ void loop() {
               if(i>0) {
                 tmp_str = "<temp>";
                 temp = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
-                Serial.println(temp);
+                //Serial.println(temp);
            }
 
               i = line.indexOf("</wfEn");
@@ -213,7 +227,7 @@ void loop() {
            if(i>0) {
                  tmp_str = "<wfEn">;
                  wfEn = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
-                 Serial.println(wfEn);
+                 //Serial.println(wfEn);
               }
 
            i = line.indexOf("</reh>");
@@ -221,12 +235,15 @@ void loop() {
              if(i>0) {
                  tmp_str = "<reh>";
                   reh = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
-               Serial.println(reh);
+               //Serial.println(reh);
                   break;
             }
          }
     }
 
+
+
+/*
     if(Mode == 0) {
       Serial.println("Current Mode!");
       digitalWrite(Relay_Air_Purifier, HIGH);
@@ -239,4 +256,6 @@ void loop() {
       digitalWrite(Relay_Room_Light, LOW);
       digitalWrite(Relay_Humidifier, LOW);
     }
+*/
+
 }
