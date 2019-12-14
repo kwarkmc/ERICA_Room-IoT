@@ -1,25 +1,25 @@
 /*
   Repeating Web client
 
- This sketch connects to a a web server and makes a request
- using a Wiznet Ethernet shield. You can use the Arduino Ethernet shield, or
- the Adafruit Ethernet shield, either one will work, as long as it's got
- a Wiznet Ethernet module on board.
+  This sketch connects to a a web server and makes a request
+  using a Wiznet Ethernet shield. You can use the Arduino Ethernet shield, or
+  the Adafruit Ethernet shield, either one will work, as long as it's got
+  a Wiznet Ethernet module on board.
 
- This example uses DNS, by assigning the Ethernet client with a MAC address,
- IP address, and DNS address.
+  This example uses DNS, by assigning the Ethernet client with a MAC address,
+  IP address, and DNS address.
 
- Circuit:
- * Ethernet shield attached to pins 10, 11, 12, 13
+  Circuit:
+   Ethernet shield attached to pins 10, 11, 12, 13
 
- created 19 Apr 2012
- by Tom Igoe
- modified 21 Jan 2014
- by Federico Vanzati
+  created 19 Apr 2012
+  by Tom Igoe
+  modified 21 Jan 2014
+  by Federico Vanzati
 
- http://www.arduino.cc/en/Tutorial/WebClientRepeating
- This code is in the public domain.
- */
+  http://www.arduino.cc/en/Tutorial/WebClientRepeating
+  This code is in the public domain.
+*/
 
 /* Header 선언 */
 #include <SPI.h>
@@ -28,7 +28,7 @@
 #include <DS1302.h>
 #include "DHT.h"
 
-SoftwareSerial bluetooth(2,3);
+SoftwareSerial bluetooth(2, 3);
 // HC-06 BT 모듈 설정
 
 #define SCK_PIN 4
@@ -76,9 +76,15 @@ int DHT_Temp;
 
 int pirState = LOW; // 센서의 초기 상태는 움직임이 없음을 가정
 int val = 0; // 센서 신호의 판별을 위한 변수이다.
+int IR_Count = 0;
+
+int Min_Count = 0;
+
+Time t;
+int Time_Over = 0;
 
 byte mac[] = {
-    0xDE, 0xAD, 0xBE, 0xFE, 0xED
+  0xDE, 0xAD, 0xBE, 0xFE, 0xED
 };
 
 EthernetClient = client;
@@ -86,176 +92,203 @@ EthernetClient = client;
 char server[] = "www.kma.go.kr";
 
 unsigned long lastConnectionTime = 0;
-const unsigned long postingInterval = 10*1000; // 데이터를 받아오는 주기
+const unsigned long postingInterval = 10 * 1000; // 데이터를 받아오는 주기
 
 void Display() {
-    Serial.println("********************************")
-    Serial.print("Internet_temp : ");
-    Serial.println(temp);
-    Serial.print("Internet_weather : ");
-    Serial.println(wfEn);
-    Serial.print("Internet_humidity : ");
-    Serial.println(reh);
-    Serial.print("Dust Density : ");
-    Serial.println(Dust_density);
-    Serial.print("DHT_Humidity : ");
-    Serial.println(DHT_Humid);
-    Serial.print("DHT_Temperature : ");
-    Serial.println(DHT_Temp);
+  Serial.println("********************************")
+  Serial.print("Internet_temp : ");
+  Serial.println(temp);
+  Serial.print("Internet_weather : ");
+  Serial.println(wfEn);
+  Serial.print("Internet_humidity : ");
+  Serial.println(reh);
+  Serial.print("Dust Density : ");
+  Serial.println(Dust_density);
+  Serial.print("DHT_Humidity : ");
+  Serial.println(DHT_Humid);
+  Serial.print("DHT_Temperature : ");
+  Serial.println(DHT_Temp);
+  Serial.print("IR_Sensing : ");
+  Serial.println(pirState);
 }
+
 
 void setup() {
 
-    /*PinMode 설정*/
+  /*PinMode 설정*/
 
-    pinMode(Relay_Air_Purifier, OUTPUT);
-    pinMode(Relay_Room_Light, OUTPUT);
-    pinMode(Relay_Humidifier, OUTPUT);
-    pinMode(DUST_INPUT_PIN, INPUT);
-    pinMode(DUST_LED_PIN, OUTPUT);
-    pinMode(DHT_PIN, INPUT);
+  pinMode(DUST_INPUT_PIN, INPUT);
+  pinMode(DUST_LED_PIN, OUTPUT);
+  pinMode(DHT_PIN, INPUT);
 
-    rtc.halt(false);
-    rtc.writeProtect(false);
+  rtc.halt(false);
+  rtc.writeProtect(false);
 
-    Serial.begin(9600);
-    while(!Serial) {
-        //Serial 포트가 연결될 때 까지 대기
+  Serial.begin(9600);
+  while (!Serial) {
+    //Serial 포트가 연결될 때 까지 대기
+  }
+  Serial.println("Paired!");
+  bluetooth.begin(9600);
+
+
+  Serial.println("Initialize Ethernet with DHCP");
+  if (Ethernet.begin(mac) == 0) {
+    Serial.println("Failed to configure Ethernet using DHCP");
+    if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+      Serial.println("ENC28J60 was not found.");
+      while (true) {
+        delay(1);
+      }
     }
-    Serial.println("Paired!");
-    bluetooth.begin(9600);
-
-
-    Serial.println("Initialize Ethernet with DHCP");
-    if(Ethernet.begin(mac) == 0) {
-        Serial.println("Failed to configure Ethernet using DHCP");
-        if(Ethernet.hardwareStatus() == EthernetNoHardware) {
-            Serial.println("ENC28J60 was not found.");
-            while(true) {
-                delay(1);
-            }
-        }
-        if(Ethernet.linkStatus() == LinkOFF) {
-            Serial.println("Ethernet cable is not connected");
-        }
-        Ethernet.begin(mac);
-        Serial.print("My IP address : ");
-        Serial.println(Ethernet.localIP());
-    } else {
-        Serial.print("DHCP assigned IP : ");
-        Serial.println(Ethernet.localIP());
+    if (Ethernet.linkStatus() == LinkOFF) {
+      Serial.println("Ethernet cable is not connected");
     }
-    delay(1000);
+    Ethernet.begin(mac);
+    Serial.print("My IP address : ");
+    Serial.println(Ethernet.localIP());
+  } else {
+    Serial.print("DHCP assigned IP : ");
+    Serial.println(Ethernet.localIP());
+  }
+  delay(1000);
 
 }
 
 void loop() {
-    int i = 0;
-    String tmp_str;
+  int i = 0;
+  String tmp_str;
 
-    if(Serial.available()) {
-        bluetooth.write(Serial.read()); // BT Master 쪽 수신 코드. if 문 안에 있는 코드 수정 예정!
+  if (Serial.available()) {
+    bluetooth.write(Serial.read()); // BT Master 쪽 수신 코드. if 문 안에 있는 코드 수정 예정!
+  }
+
+  DHT_Humid = dht.readHumidity();
+  DHT_Temp = dht.readTemperature();
+  //DHT11
+
+  t = rtc.getTime();
+
+  digitalWrite(DUST_LED_PIN, LOW);
+  delayMicroseconds(280);
+  Dust_value = analogRead(DUST_INPUT_PIN);
+  delayMicroseconds(40);
+  digitalWrite(DUST_LED_PIN, HIGH);
+  delayMicroseconds(9860);
+
+  Dust_voltage = Dust_value * 5.0 / 1024.0;
+  Dust_density = (Dust_voltage - 0.3) / 0.005;
+
+
+  //Dust_Sensor
+
+  val = digitalREad(IR_PIN);
+  /*  
+  if (val == HIGH) {
+    if (pirState == LOW) {
+      pirState = HIGH;
+    }
+  }
+  else {
+    if (pirState == HIGH) {
+      pirState = LOW;
+    }
+  }
+  */
+  //IR_Sensor
+
+  if (millis() - lastConnectionTime > postingInterval) {
+    httpRequest();
+  }
+
+  void httpRequest() {
+    // close any connection before send a new request.
+    // This will free the socket on the WiFi shield
+    client.stop();
+
+    // if there's a successful connection:
+    if (client.connect(server, 80)) {
+      Serial.println("connecting...");
+      // send the HTTP GET request:
+      client.println("GET /wid/queryDFSRSS.jsp?zone=4127152500 HTTP/1.1");
+      client.println("Host: www.kma.go.kr");
+      client.println("Connection: close");
+      client.println();
+
+      // note the time that the connection was made:
+      lastConnectionTime = millis();
+    } else {
+      // if you couldn't make a connection:
+      Serial.println("connection failed");
     }
 
-    DHT_Humid = dht.readHumidity();
-    DHT_Temp = dht.readTemperature();
-    //DHT11
+    while (client.available()) {
+      String line = client.readStringUntil('\n');
 
-    digitalWrite(DUST_LED_PIN, LOW);
-    delayMicroseconds(280);
-    Dust_value = analogRead(DUST_INPUT_PIN);
-    delayMicroseconds(40);
-    digitalWrite(DUST_LED_PIN, HIGH);
-    delayMicroseconds(9860);
+      i = line.indexOf("</temp>");
 
-    Dust_voltage = Dust_value * 5.0 / 1024.0;
-    Dust_density = (Dust_voltage - 0.3) / 0.005;
+      if (i > 0) {
+        tmp_str = "<temp>";
+        temp = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
+        //Serial.println(temp);
+      }
 
-    val = digitalWrite(DHT_PIN);
-    //Dust_Sensor
+      i = line.indexOf("</wfEn");
 
-    if(val == HIGH) {
-        if(pirState == LOW) {
-            pirState = HIGH;
-        }
+      if (i > 0) {
+        tmp_str = "<wfEn" >;
+        wfEn = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
+        //Serial.println(wfEn);
+      }
+
+      i = line.indexOf("</reh>");
+
+      if (i > 0) {
+        tmp_str = "<reh>";
+        reh = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
+        //Serial.println(reh);
+        break;
+      }
     }
-    else {
-        if(pirState == HIGH) {
-            pirState = LOW;
-        }
-    }
-    //IR_Sensor
+  }
 
-    if(millis() - lastConnectionTime > postingInterval) {
-        httpRequest();
-    }
+  Display();
 
-    void httpRequest() {
-        // close any connection before send a new request.
-        // This will free the socket on the WiFi shield
-        client.stop();
-
-          // if there's a successful connection:
-        if (client.connect(server, 80)) {
-         Serial.println("connecting...");
-            // send the HTTP GET request:
-            client.println("GET /wid/queryDFSRSS.jsp?zone=4127152500 HTTP/1.1");
-            client.println("Host: www.kma.go.kr");
-            client.println("Connection: close");
-            client.println();
-
-            // note the time that the connection was made:
-          lastConnectionTime = millis();
-        } else {
-         // if you couldn't make a connection:
-         Serial.println("connection failed");
-         }
-
-        while(client.available()) {
-             String line = client.readStringUntil('\n');
-
-              i = line.indexOf("</temp>");
-
-              if(i>0) {
-                tmp_str = "<temp>";
-                temp = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
-                //Serial.println(temp);
-           }
-
-              i = line.indexOf("</wfEn");
-
-           if(i>0) {
-                 tmp_str = "<wfEn">;
-                 wfEn = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
-                 //Serial.println(wfEn);
-              }
-
-           i = line.indexOf("</reh>");
-
-             if(i>0) {
-                 tmp_str = "<reh>";
-                  reh = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
-               //Serial.println(reh);
-                  break;
+  
+      if(Mode == 0) {
+        Serial.println("Current Mode!");
+        //공기청정기 HIGH 코드
+        if((val == HIGH) && (pirState == LOW)) {
+          Serial.println("Motion Detected!");
+          if(Min_Count == 0) {
+            if(t.min > 45) {
+              Min_Count = t.min;
+              Time_Over = 1;
             }
-         }
-    }
+            else  {
+              Min_Count = t.min;
+              Time_Over = 0;
+            }
+          }
+          
+          IR_Count++;
+        }
+        if(Time_Over == 0) {
+          if(t.min >= Min_Count) {
+            IR_Count = 0;
+            Mode = 1;
+            break();
+          }
+        }
+        else if(Time_Over == 1) {
+          if()
+        }
+      }
+      else if (Mode == 1) {
+        Serial.println("Sleeping Mode!");
+        //공기청정기 LOW 코드
 
-
-
-/*
-    if(Mode == 0) {
-      Serial.println("Current Mode!");
-      digitalWrite(Relay_Air_Purifier, HIGH);
-      digitalWrite(Relay_Room_Light, HIGH);
-      digitalWrite(Relay_Humidifier, HIGH);
-    } 
-    else if (Mode == 1) {
-      Serial.println("Sleeping Mode!");
-      digitalWrite(Relay_Air_Purifier, LOW);
-      digitalWrite(Relay_Room_Light, LOW);
-      digitalWrite(Relay_Humidifier, LOW);
-    }
-*/
+      }
+  
 
 }
