@@ -272,16 +272,27 @@ void loop() {
           }
           
           IR_Count++;
+          
         }
         if(Time_Over == 0) {
-          if(t.min >= Min_Count) {
-            IR_Count = 0;
-            Mode = 1;
-            break();
+          if((t.min - Min_Count) > 15) {
+            if(IR_Count >= 5) {
+              Mode = 1;
+              break();
+              IR_Count = 0;
+            }
+          
           }
         }
         else if(Time_Over == 1) {
-          if()
+          if(t.min < 45 && (((60 - Min_Count) + t.min) >= 15)) {
+            if(IR_Count >= 5) {
+             IR_Count = 0;
+             Mode = 1;
+              break();
+            }
+
+          }
         }
       }
       else if (Mode == 1) {
