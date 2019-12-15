@@ -256,10 +256,12 @@ void loop() {
 
   
       if(Mode == 0) {
+        //BT High 코드
         Serial.println("Current Mode!");
         //공기청정기 HIGH 코드
         if((val == HIGH) && (pirState == LOW)) {
           Serial.println("Motion Detected!");
+          pirState = HIGH;
           if(Min_Count == 0) {
             if(t.min > 45) {
               Min_Count = t.min;
@@ -272,14 +274,24 @@ void loop() {
           }
           
           IR_Count++;
-          
+
+        }
+        else {
+          if((val == LOW) && pirState == LOW) {
+            Serial.println("Motion Ended!");
+            pirState = HIGH;
+          }
         }
         if(Time_Over == 0) {
           if((t.min - Min_Count) > 15) {
             if(IR_Count >= 5) {
               Mode = 1;
-              break();
               IR_Count = 0;
+              Min_Count = 0;
+              break();
+            } else {
+              IR_Count = 0;
+              Min_Count = 0;
             }
           
           }
@@ -289,7 +301,11 @@ void loop() {
             if(IR_Count >= 5) {
              IR_Count = 0;
              Mode = 1;
-              break();
+             Min_Count = 0;
+             break();
+            } else  {
+              IR_Count = 0;
+              Min_Count = 0;
             }
 
           }
@@ -297,6 +313,7 @@ void loop() {
       }
       else if (Mode == 1) {
         Serial.println("Sleeping Mode!");
+        if()
         //공기청정기 LOW 코드
 
       }
