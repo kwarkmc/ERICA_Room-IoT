@@ -277,7 +277,7 @@ void loop() {
 
         }
         else {
-          if((val == LOW) && pirState == LOW) {
+          if((val == LOW) && (pirState == LOW)) {
             Serial.println("Motion Ended!");
             pirState = HIGH;
           }
@@ -313,8 +313,10 @@ void loop() {
       }
       else if (Mode == 1) {
         Serial.println("Sleeping Mode!");
-        if()
-        //공기청정기 LOW 코드
+        if((val == HIGH) && (pirState == LOW)) {
+          
+        }
+                //공기청정기 LOW 코드
 
       }
   
