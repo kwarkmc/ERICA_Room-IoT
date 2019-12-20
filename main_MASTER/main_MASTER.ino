@@ -87,7 +87,7 @@ byte mac[] = {
   0xDE, 0xAD, 0xBE, 0xFE, 0xED
 };
 
-EthernetClient = client;
+EthernetClient client;
 
 char server[] = "www.kma.go.kr";
 
@@ -95,7 +95,7 @@ unsigned long lastConnectionTime = 0;
 const unsigned long postingInterval = 10 * 1000; // 데이터를 받아오는 주기
 
 void Display() {
-  Serial.println("********************************")
+  Serial.println("********************************");
   Serial.print("Internet_temp : ");
   Serial.println(temp);
   Serial.print("Internet_weather : ");
@@ -112,6 +112,58 @@ void Display() {
   Serial.println(pirState);
 }
 
+void httpRequest() {
+  int i = 0;
+  String tmp_str;
+  // close any connection before send a new request.
+  // This will free the socket on the WiFi shield
+  client.stop();
+
+  // if there's a successful connection:
+  if (client.connect(server, 80)) {
+    Serial.println("connecting...");
+    // send the HTTP GET request:
+    client.println("GET /wid/queryDFSRSS.jsp?zone=4127152500 HTTP/1.1");
+    client.println("Host: www.kma.go.kr");
+    client.println("Connection: close");
+    client.println();
+
+    // note the time that the connection was made:
+    lastConnectionTime = millis();
+  } else {
+    // if you couldn't make a connection:
+    Serial.println("connection failed");
+  }
+
+  while (client.available()) {
+    String line = client.readStringUntil('\n');
+
+    i = line.indexOf("</temp>");
+
+    if (i > 0) {
+      tmp_str = "<temp>";
+      temp = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
+      //Serial.println(temp);
+    }
+
+    i = line.indexOf("</wfEn");
+
+    if (i > 0) {
+      tmp_str = "<wfEn>";
+      wfEn = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
+      //Serial.println(wfEn);
+    }
+
+    i = line.indexOf("</reh>");
+
+    if (i > 0) {
+      tmp_str = "<reh>";
+      reh = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
+      //Serial.println(reh);
+      break;
+    }
+  }
+}
 
 void setup() {
 
@@ -183,122 +235,78 @@ void loop() {
 
   val = digitalRead(IR_PIN);
 
+
+
+
+
   if (millis() - lastConnectionTime > postingInterval) {
     httpRequest();
   }
-
-  void httpRequest() {
-    // close any connection before send a new request.
-    // This will free the socket on the WiFi shield
-    client.stop();
-
-    // if there's a successful connection:
-    if (client.connect(server, 80)) {
-      Serial.println("connecting...");
-      // send the HTTP GET request:
-      client.println("GET /wid/queryDFSRSS.jsp?zone=4127152500 HTTP/1.1");
-      client.println("Host: www.kma.go.kr");
-      client.println("Connection: close");
-      client.println();
-
-      // note the time that the connection was made:
-      lastConnectionTime = millis();
-    } else {
-      // if you couldn't make a connection:
-      Serial.println("connection failed");
-    }
-
-    while (client.available()) {
-      String line = client.readStringUntil('\n');
-
-      i = line.indexOf("</temp>");
-
-      if (i > 0) {
-        tmp_str = "<temp>";
-        temp = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
-        //Serial.println(temp);
-      }
-
-      i = line.indexOf("</wfEn");
-
-      if (i > 0) {
-        tmp_str = "<wfEn" >;
-        wfEn = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
-        //Serial.println(wfEn);
-      }
-
-      i = line.indexOf("</reh>");
-
-      if (i > 0) {
-        tmp_str = "<reh>";
-        reh = line.substring(line.indexOf(tmp_str) + tmp_str.length(), i);
-        //Serial.println(reh);
-        break;
-      }
-    }
-  }
-
   Display();
 
-  
-      if(Mode == 0) {
-        bluetooth.write('0');
-        //BT High 코드
-        Serial.println("Current Mode!");
-        //어레이 HIGH 코드
-        if((val == HIGH) && (pirState == LOW)) {
-          Serial.println("Motion Detected!");
-          pirState = HIGH;
-          
-          IR_Count++;
 
-        }
-        else {
-          if((val == LOW) && (pirState == LOW)) {
-            Serial.println("Motion Ended!");
-            pirState = HIGH;
-          }
-        }
+  if (Mode == 0) {
+    bluetooth.write('00');
+    //BT High 코드
+    Serial.println("Current Mode!");
+    //어레이 HIGH 코드
+    if ((val == HIGH) && (pirState == LOW)) {
+      Serial.println("Motion Detected!");
+      pirState = HIGH;
 
-        if(pre_count_min + 1 == t.min) { //수정작업 필요. LOGIC
-          count_min++;
-          pre_count_min = t.min;
-        }
+      IR_Count++;
 
-        if(count_min > 20) {
-          count_min = 0;
-          if(IR_Count < 5) {
-            IR_Count = 0;
-            Mode = 1;
-          }
-        }
-        
+    }
+    else {
+      if ((val == LOW) && (pirState == LOW)) {
+        Serial.println("Motion Ended!");
+        pirState = HIGH;
       }
-      else if (Mode == 1) {
-        bluetooth.write('1');
-        Serial.println("Sleeping Mode!");
-        if((val == HIGH) && (pirState == LOW)) {
-          Serial.println("Motion Detected!");
-          pirState = HIGH;
+    }
 
-          IR_Count++;
-        }
-        else {
-          if((val == LOW) && (pirState == LOW)) {
-            Serial.println("Motion Ended!");
-            pirState = LOW;
-          }
-        }
+    if (pre_count_min + 1 == t.min) { //수정작업 필요. LOGIC
+      count_min++;
+      pre_count_min = t.min;
+    }
 
-        if(IR_Count > 5) {
-          IR_Count = 0;
-          Mode = 0;
-        }
-                //공기청정기 LOW 코드
-
+    if (count_min > 20) {
+      count_min = 0;
+      if (IR_Count < 5) {
+        IR_Count = 0;
+        Mode = 1;
       }
+    }
 
-      if()
-  
+  }
+  else if (Mode == 1) {
+    bluetooth.write('01');
+    Serial.println("Sleeping Mode!");
+    if ((val == HIGH) && (pirState == LOW)) {
+      Serial.println("Motion Detected!");
+      pirState = HIGH;
+
+      IR_Count++;
+    }
+    else {
+      if ((val == LOW) && (pirState == LOW)) {
+        Serial.println("Motion Ended!");
+        pirState = LOW;
+      }
+    }
+
+    if (IR_Count > 5) {
+      IR_Count = 0;
+      Mode = 0;
+    }
+
+  }
+
+  if (Dust_density < 30) {
+    bluetooth.write('10');
+  }
+  else {
+    bluetooth.write('11');
+  }
+
 
 }
