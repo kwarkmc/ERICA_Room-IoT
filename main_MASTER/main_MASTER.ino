@@ -78,10 +78,10 @@ int pirState = LOW; // 센서의 초기 상태는 움직임이 없음을 가정
 int val = 0; // 센서 신호의 판별을 위한 변수이다.
 int IR_Count = 0;
 
-int Min_Count = 0;
 
 Time t;
-int Time_Over = 0;
+int count_min = 0;
+int pre_count_min = 0;
 
 byte mac[] = {
   0xDE, 0xAD, 0xBE, 0xFE, 0xED
@@ -179,23 +179,9 @@ void loop() {
   Dust_voltage = Dust_value * 5.0 / 1024.0;
   Dust_density = (Dust_voltage - 0.3) / 0.005;
 
-
   //Dust_Sensor
 
-  val = digitalREad(IR_PIN);
-  /*  
-  if (val == HIGH) {
-    if (pirState == LOW) {
-      pirState = HIGH;
-    }
-  }
-  else {
-    if (pirState == HIGH) {
-      pirState = LOW;
-    }
-  }
-  */
-  //IR_Sensor
+  val = digitalRead(IR_PIN);
 
   if (millis() - lastConnectionTime > postingInterval) {
     httpRequest();
@@ -256,22 +242,13 @@ void loop() {
 
   
       if(Mode == 0) {
+        bluetooth.write('0');
         //BT High 코드
         Serial.println("Current Mode!");
-        //공기청정기 HIGH 코드
+        //어레이 HIGH 코드
         if((val == HIGH) && (pirState == LOW)) {
           Serial.println("Motion Detected!");
           pirState = HIGH;
-          if(Min_Count == 0) {
-            if(t.min > 45) {
-              Min_Count = t.min;
-              Time_Over = 1;
-            }
-            else  {
-              Min_Count = t.min;
-              Time_Over = 0;
-            }
-          }
           
           IR_Count++;
 
@@ -282,43 +259,46 @@ void loop() {
             pirState = HIGH;
           }
         }
-        if(Time_Over == 0) {
-          if((t.min - Min_Count) > 15) {
-            if(IR_Count >= 5) {
-              Mode = 1;
-              IR_Count = 0;
-              Min_Count = 0;
-              break();
-            } else {
-              IR_Count = 0;
-              Min_Count = 0;
-            }
-          
-          }
-        }
-        else if(Time_Over == 1) {
-          if(t.min < 45 && (((60 - Min_Count) + t.min) >= 15)) {
-            if(IR_Count >= 5) {
-             IR_Count = 0;
-             Mode = 1;
-             Min_Count = 0;
-             break();
-            } else  {
-              IR_Count = 0;
-              Min_Count = 0;
-            }
 
+        if(pre_count_min + 1 == t.min) { //수정작업 필요. LOGIC
+          count_min++;
+          pre_count_min = t.min;
+        }
+
+        if(count_min > 20) {
+          count_min = 0;
+          if(IR_Count < 5) {
+            IR_Count = 0;
+            Mode = 1;
           }
         }
+        
       }
       else if (Mode == 1) {
+        bluetooth.write('1');
         Serial.println("Sleeping Mode!");
         if((val == HIGH) && (pirState == LOW)) {
-          
+          Serial.println("Motion Detected!");
+          pirState = HIGH;
+
+          IR_Count++;
+        }
+        else {
+          if((val == LOW) && (pirState == LOW)) {
+            Serial.println("Motion Ended!");
+            pirState = LOW;
+          }
+        }
+
+        if(IR_Count > 5) {
+          IR_Count = 0;
+          Mode = 0;
         }
                 //공기청정기 LOW 코드
 
       }
+
+      if()
   
 
 }
