@@ -5,3 +5,5 @@
 
 **자세한 프로젝트 설명과 개요 & 사용법은 Wiki 참조**
 > https://github.com/kwarkmc/ERICA_Room-IoT.wiki.git
+
+# 완료 작업중입니다.
