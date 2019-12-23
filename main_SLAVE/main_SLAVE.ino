@@ -1,7 +1,7 @@
 #include <SoftwareSerial.h>
 
-int Relay_Light = 3;
-int Relay_AirPurifier = 4;
+int Relay_Light = 8;
+int Relay_AirPurifier = 9;
 int input = 0;
 
 SoftwareSerial bluetooth(2, 3);
