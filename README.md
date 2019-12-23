@@ -4,6 +4,4 @@
 * OSS 2019-2 기말고사 대체 프로젝트
 
 **자세한 프로젝트 설명과 개요 & 사용법은 Wiki 참조**
-> https://github.com/kwarkmc/ERICA_Room-IoT.wiki.git
-
-# 완료 작업중입니다.
+> https://github.com/kwarkmc/ERICA_Room-IoT/wiki
